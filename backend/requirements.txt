@@ -1,0 +1,12 @@
+
+fastapi
+uvicorn
+pydantic
+python-multipart
+pymongo
+textblob
+gtts
+pillow
+groq
+python-dotenv
+httpx
