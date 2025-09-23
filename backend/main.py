@@ -1,8 +1,23 @@
+from fastapi import FastAPI, UploadFile, File, Form, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+import requests, json, uuid, os
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+from datetime import datetime
+import logging
+from groq import Groq
+from dotenv import load_dotenv
+import httpx
+
+# Load environment variables
+load_dotenv()
+
+# Get API keys from environment variables
 ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY", "d0f46f6ac32f4caf8a318ae748b15992")
 
 async def transcribe_with_assemblyai(audio_bytes: bytes) -> str:
     """Send audio to AssemblyAI and return transcript text."""
-    import httpx
     upload_url = "https://api.assemblyai.com/v2/upload"
     transcript_url = "https://api.assemblyai.com/v2/transcript"
     headers = {"authorization": ASSEMBLYAI_API_KEY}
@@ -29,17 +44,6 @@ async def transcribe_with_assemblyai(audio_bytes: bytes) -> str:
                 raise Exception("AssemblyAI transcription failed")
             import asyncio
             await asyncio.sleep(2)
-from fastapi import FastAPI, UploadFile, File, Form, Request
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-import requests, json, uuid, os
-from pymongo import MongoClient
-from bson.objectid import ObjectId
-from datetime import datetime
-import logging
-from groq import Groq
-from dotenv import load_dotenv
-import httpx
 
 app = FastAPI()
 app.add_middleware(
