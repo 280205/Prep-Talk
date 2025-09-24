@@ -1,7 +1,10 @@
-ASSEMBLYAI_API_KEY = "d0f46f6ac32f4caf8a318ae748b15992"
+ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
 
 async def transcribe_with_assemblyai(audio_bytes: bytes) -> str:
     """Send audio to AssemblyAI and return transcript text."""
+    if not ASSEMBLYAI_API_KEY:
+        raise ValueError("ASSEMBLYAI_API_KEY environment variable is required")
+    
     import httpx
     upload_url = "https://api.assemblyai.com/v2/upload"
     transcript_url = "https://api.assemblyai.com/v2/transcript"
