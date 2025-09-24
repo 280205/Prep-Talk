@@ -6,10 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { useAuthModal } from "@/contexts/AuthModalContext";
 import { getApiBaseUrl } from "@/lib/api";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { useRouter } from "next/navigation";
 import { Loader2, Mail, Lock, Eye, EyeOff, User, Briefcase, Sparkles } from "lucide-react";
 
@@ -29,44 +27,6 @@ export function SignupModal() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  const handleGoogleSuccess = async (userData: any) => {
-    setLoading(true);
-    setError("");
-    
-    try {
-      const submitData = new FormData();
-      submitData.append('email', userData.email);
-      submitData.append('full_name', userData.name);
-      submitData.append('google_id', userData.google_id);
-      submitData.append('auth_type', 'google');
-      submitData.append('experience', '0-1');
-      submitData.append('job_domain', 'other');
-      
-      const res = await fetch(`${getApiBaseUrl()}/google-register`, {
-        method: "POST",
-        body: submitData,
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        localStorage.setItem("preptalk_user", userData.email);
-        closeModals();
-        router.push("/dashboard");
-      } else {
-        setError(data.detail || "Google registration failed");
-      }
-    } catch (error) {
-      setError("Something went wrong with Google sign-up. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleError = (error: string) => {
-    setError(error);
-  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -289,20 +249,6 @@ export function SignupModal() {
         </form>
 
         <div className="text-center space-y-4">
-          <div className="relative">
-            <Separator />
-            <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-950 px-2 text-sm text-gray-500">
-              or
-            </span>
-          </div>
-
-          <GoogleSignInButton
-            onSuccess={handleGoogleSuccess}
-            onError={handleGoogleError}
-            disabled={loading}
-            text="Sign up with Google"
-          />
-
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Already have an account?{" "}
             <button

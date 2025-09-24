@@ -5,10 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { useAuthModal } from "@/contexts/AuthModalContext";
 import { getApiBaseUrl } from "@/lib/api";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { useRouter } from "next/navigation";
 import { Loader2, Mail, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
 
@@ -51,10 +49,6 @@ export function LoginModal() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleError = (error: string) => {
-    setError(error);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -175,20 +169,6 @@ export function LoginModal() {
         </form>
 
         <div className="text-center space-y-4">
-          <div className="relative">
-            <Separator />
-            <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-950 px-2 text-sm text-gray-500">
-              or
-            </span>
-          </div>
-
-          <GoogleSignInButton
-            onSuccess={handleGoogleSuccess}
-            onError={handleGoogleError}
-            disabled={loading}
-            text="Sign in with Google"
-          />
-
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Don't have an account?{" "}
             <button
