@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const jobDomain = searchParams.get("jobDomain") || "";
 
   // Proxy to FastAPI backend with direct URL
-  const backendUrl = `http://127.0.0.1:8000/question/generate?category=${encodeURIComponent(category)}&count=${encodeURIComponent(count)}&job_domain=${encodeURIComponent(jobDomain)}`;
+  const backendUrl = `${getApiBaseUrl()}/question/generate?category=${encodeURIComponent(category)}&count=${encodeURIComponent(count)}&job_domain=${encodeURIComponent(jobDomain)}`;
   const backendRes = await fetch(backendUrl);
   if (!backendRes.ok) {
     return NextResponse.json({ error: "Failed to generate question(s) from backend" }, { status: 500 });

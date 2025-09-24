@@ -1,87 +1,47 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getApiBaseUrl } from "@/lib/api"
 
 export async function POST(request: NextRequest) {
   try {
     const { message, context } = await request.json()
     
-    // Check if GROQ API key exists
-    if (!process.env.GROQ_API_KEY) {
-      console.error("GROQ_API_KEY not found in environment variables")
+    if (!message) {
       return NextResponse.json(
-        { error: "GROQ API key not configured" },
-        { status: 500 }
+        { error: "Message is required" },
+        { status: 400 }
       )
     }
 
-    console.log("Making request to GROQ API with message:", message)
+    console.log("Forwarding chat request to backend API")
     
-    // Current GROQ Production Models (as of 2025)
-    const models = [
-      "llama-3.3-70b-versatile",  // Current Llama 3 70B production model
-      "llama-3.1-8b-instant",     // Faster alternative
-      "openai/gpt-oss-120b",      // OpenAI model alternative
-      "openai/gpt-oss-20b"        // Smaller OpenAI model
-    ]
+    // Use deployed backend for server-side calls
+    const backendUrl = getApiBaseUrl()
     
-    for (const model of models) {
-      try {
-        const requestBody = {
-          model: model,
-          messages: [
-            {
-              role: "system",
-              content: "You are PrepTalk AI Assistant, an expert interview coach helping Indian job seekers. Provide practical, actionable advice for interview preparation. Be concise but comprehensive. Focus on Indian job market context when relevant."
-            },
-            {
-              role: "user", 
-              content: message
-            }
-          ],
-          max_tokens: 1000,
-          temperature: 0.7
-        }
-
-        console.log(`Trying model: ${model}`)
-        
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        })
-
-        console.log(`Model ${model} response status:`, response.status)
-
-        if (response.ok) {
-          const data = await response.json()
-          console.log("GROQ API response successful with model:", model)
-          
-          if (data.choices && data.choices[0] && data.choices[0].message) {
-            return NextResponse.json({
-              response: data.choices[0].message.content
-            })
-          }
-        } else {
-          const errorText = await response.text()
-          console.log(`Model ${model} failed:`, response.status, errorText)
-        }
-      } catch (modelError) {
-        console.log(`Model ${model} error:`, modelError)
-      }
-    }
-    
-    // If all models fail, return a helpful response
-    console.log("All GROQ models failed, returning fallback response")
-    return NextResponse.json({
-      response: "I'm PrepTalk AI Assistant! I'm here to help you with interview preparation. I am facing some connection issues. \nPlease try sending your message again in a moment, or check with the development team about the API configuration."
+    // Forward the request to the backend
+    const response = await fetch(`${backendUrl}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message, context }),
     })
 
+    if (response.ok) {
+      const data = await response.json()
+      return NextResponse.json(data)
+    } else {
+      const errorData = await response.json()
+      console.error("Backend chat API error:", errorData)
+      return NextResponse.json(
+        { error: errorData.error || "Failed to get response from backend" },
+        { status: response.status }
+      )
+    }
+
   } catch (error) {
-    console.error("Chat API error:", error)
+    console.error("Chat API proxy error:", error)
     return NextResponse.json(
-      { error: `Failed to generate response: ${error instanceof Error ? error.message : 'Unknown error'}` },
+      { error: `Failed to process request: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     )
   }

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    // Forward to backend
+    // Forward to backend with direct URL
     const response = await fetch(`${getApiBaseUrl()}/session_groups?user_id=${encodeURIComponent(user_id)}`)
     
     if (!response.ok) {

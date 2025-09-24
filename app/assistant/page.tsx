@@ -56,8 +56,8 @@ export default function AssistantPage() {
     setIsLoading(true);
 
     try {
-      // Call backend directly instead of frontend API route
-      const response = await fetch('http://127.0.0.1:8000/chat', {
+      // Use Next.js API route instead of direct backend call
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

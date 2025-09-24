@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const user_id = searchParams.get("user_id") || ""
 
   try {
-    // Fetch real progress/analytics from backend
+    // Fetch real progress/analytics from backend with direct URL
     const pyRes = await fetch(`${getApiBaseUrl()}/progress?user_id=` + encodeURIComponent(user_id), {
       method: "GET"
     });

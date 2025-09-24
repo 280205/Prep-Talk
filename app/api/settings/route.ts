@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getApiBaseUrl } from "@/lib/api";
 
 export async function GET(request: NextRequest) {
   try {
@@ -6,7 +7,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId') || 'demo-user'
 
     // Call Python backend to get user settings
-    const pyRes = await fetch(`http://127.0.0.1:8000/settings/${userId}`, {
+    const pyRes = await fetch(`${getApiBaseUrl()}/settings/${userId}`, {
       method: 'GET',
     })
 
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
     const settings = await request.json()
 
     // Call Python backend to save settings
-    const pyRes = await fetch(`http://127.0.0.1:8000/settings`, {
+    const pyRes = await fetch(`${getApiBaseUrl()}/settings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -89,7 +90,7 @@ export async function PUT(request: NextRequest) {
     const updates = await request.json()
 
     // Call Python backend to update specific settings
-    const pyRes = await fetch(`http://127.0.0.1:8000/settings/update`, {
+    const pyRes = await fetch(`${getApiBaseUrl()}/settings/update`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -133,7 +134,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Call Python backend to reset settings
-    const pyRes = await fetch(`http://127.0.0.1:8000/settings/${userId}`, {
+    const pyRes = await fetch(`${getApiBaseUrl()}/settings/${userId}`, {
       method: 'DELETE',
     })
 
