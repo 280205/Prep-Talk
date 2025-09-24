@@ -1,23 +1,8 @@
-from fastapi import FastAPI, UploadFile, File, Form, Request
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-import requests, json, uuid, os
-from pymongo import MongoClient
-from bson.objectid import ObjectId
-from datetime import datetime
-import logging
-from groq import Groq
-from dotenv import load_dotenv
-import httpx
-
-# Load environment variables
-load_dotenv()
-
-# Get API keys from environment variables
-ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY", "d0f46f6ac32f4caf8a318ae748b15992")
+ASSEMBLYAI_API_KEY = "d0f46f6ac32f4caf8a318ae748b15992"
 
 async def transcribe_with_assemblyai(audio_bytes: bytes) -> str:
     """Send audio to AssemblyAI and return transcript text."""
+    import httpx
     upload_url = "https://api.assemblyai.com/v2/upload"
     transcript_url = "https://api.assemblyai.com/v2/transcript"
     headers = {"authorization": ASSEMBLYAI_API_KEY}
@@ -44,6 +29,17 @@ async def transcribe_with_assemblyai(audio_bytes: bytes) -> str:
                 raise Exception("AssemblyAI transcription failed")
             import asyncio
             await asyncio.sleep(2)
+from fastapi import FastAPI, UploadFile, File, Form, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+import requests, json, uuid, os
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+from datetime import datetime
+import logging
+from groq import Groq
+from dotenv import load_dotenv
+import httpx
 
 app = FastAPI()
 app.add_middleware(
@@ -65,16 +61,15 @@ GROQ_MODEL_SMART = "llama-3.3-70b-versatile"   # For complex analysis
 GROQ_TIMEOUT = 60  # Increased timeout for larger model
 
 # --- MongoDB Setup ---
-MONGODB_URI = os.getenv("MONGODB_URI", os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
 try:
-    client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000, socketTimeoutMS=20000, connectTimeoutMS=20000)
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000, socketTimeoutMS=20000, connectTimeoutMS=20000)
     # Test the connection
     client.admin.command('ping')
     print("✅ Successfully connected to MongoDB Atlas!")
     db = client["preptalk"]
     users_collection = db["users"]
     interviews_collection = db["interviews"]
-    profiles_collection = db["profiles"]
     
     # Create demo user if it doesn't exist
     demo_user = {
@@ -99,7 +94,6 @@ except Exception as e:
     db = client["preptalk"]
     users_collection = db["users"]
     interviews_collection = db["interviews"]
-    profiles_collection = db["profiles"]
 
 # --- LLM Helper Functions ---
 async def call_groq_llm(prompt: str, model_name: str = None, use_smart_model: bool = False) -> str:
@@ -275,9 +269,48 @@ async def root():
             "user_registration": "/register",
             "user_login": "/login",
             "interview_analysis": "/analyze_interview",
-            "user_profile": "/profile"
+            "user_profile": "/profile",
+            "chat": "/chat"
         }
     }
+
+@app.post("/chat")
+async def chat_endpoint(request: Request):
+    """Chat endpoint for AI assistant"""
+    try:
+        body = await request.json()
+        message = body.get("message", "")
+        context = body.get("context", "")
+        
+        if not message:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Message is required"}
+            )
+        
+        # Prepare the prompt with context
+        system_prompt = """You are PrepTalk AI Assistant, an expert interview coach helping Indian job seekers. 
+Provide practical, actionable advice for interview preparation. Be concise but comprehensive. 
+Focus on Indian job market context when relevant."""
+        
+        if context:
+            prompt = f"Context: {context}\n\nUser Question: {message}"
+        else:
+            prompt = message
+            
+        full_prompt = f"{system_prompt}\n\n{prompt}"
+        
+        # Call Groq API
+        response = await call_groq_llm(full_prompt, use_smart_model=True)
+        
+        return JSONResponse(content={"response": response})
+        
+    except Exception as e:
+        logger.error(f"Chat endpoint error: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Failed to generate response"}
+        )
 
 # --- User Authentication ---
 @app.post("/register")
@@ -362,6 +395,98 @@ async def login(
         return JSONResponse(
             status_code=500,
             content={"detail": "Login failed"}
+        )
+
+@app.post("/google-auth")
+async def google_auth(
+    email: str = Form(...),
+    name: str = Form(...),
+    google_id: str = Form(...),
+    auth_type: str = Form("google")
+):
+    try:
+        # Check if user exists
+        user = users_collection.find_one({"email": email})
+        
+        if user:
+            # User exists, log them in
+            return JSONResponse(content={
+                "success": True,
+                "message": "Google login successful",
+                "user_id": user["user_id"],
+                "full_name": user.get("full_name", name),
+                "email": user["email"],
+                "token": "demo_token_" + user["user_id"]
+            })
+        else:
+            # User doesn't exist, suggest registration
+            return JSONResponse(
+                status_code=404,
+                content={"detail": "Account not found. Please sign up first."}
+            )
+        
+    except Exception as e:
+        logger.error(f"Google auth error: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Google authentication failed"}
+        )
+
+@app.post("/google-register")
+async def google_register(
+    email: str = Form(...),
+    full_name: str = Form(...),
+    google_id: str = Form(...),
+    auth_type: str = Form("google"),
+    experience: str = Form("0-1"),
+    job_domain: str = Form("other")
+):
+    try:
+        # Check if user already exists
+        existing_user = users_collection.find_one({"email": email})
+        if existing_user:
+            # User exists, log them in instead
+            return JSONResponse(content={
+                "success": True,
+                "message": "Welcome back! Google login successful",
+                "user_id": existing_user["user_id"],
+                "full_name": existing_user.get("full_name", full_name),
+                "email": existing_user["email"],
+                "token": "demo_token_" + existing_user["user_id"]
+            })
+        
+        # Create new user profile
+        user_id = email.split("@")[0] + "_" + str(abs(hash(email)))[:6]
+        user_profile = {
+            "email": email,
+            "username": user_id,
+            "password": None,  # No password for Google OAuth users
+            "full_name": full_name,
+            "experience": experience,
+            "job_domain": job_domain,
+            "google_id": google_id,
+            "auth_type": auth_type,
+            "created_at": datetime.utcnow(),
+            "user_id": user_id
+        }
+        
+        # Insert user
+        result = users_collection.insert_one(user_profile)
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": "Google registration successful",
+            "user_id": user_profile["user_id"],
+            "full_name": user_profile["full_name"],
+            "email": user_profile["email"],
+            "token": "demo_token_" + user_profile["user_id"]
+        })
+        
+    except Exception as e:
+        logger.error(f"Google registration error: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Google registration failed"}
         )
 
 # --- AI Prompt Builder ---
@@ -633,27 +758,55 @@ async def user_progress(user_id: str):
 async def get_profile(user_id: str):
     """Get user profile"""
     try:
+        # First check if profile exists in profiles collection
         profile = db["profiles"].find_one({"userId": user_id})
+        
         if profile:
             profile["_id"] = str(profile["_id"])
             return profile
         else:
-            # Return default profile
-            return {
-                "userId": user_id,
-                "name": "",
-                "email": "",
-                "phone": "",
-                "location": "",
-                "jobTitle": "",
-                "company": "",
-                "experience": "",
-                "education": "",
-                "skills": [],
-                "about": "",
-                "targetRole": "",
-                "industry": ""
-            }
+            # Check if user exists in users collection (from signup)
+            user_data = users_collection.find_one({"user_id": user_id})
+            
+            if user_data:
+                # Create profile from signup data
+                profile_from_signup = {
+                    "userId": user_id,
+                    "name": user_data.get("full_name", ""),
+                    "email": user_data.get("email", ""),
+                    "phone": "",
+                    "location": "",
+                    "jobTitle": "",
+                    "company": "",
+                    "experience": user_data.get("experience", ""),
+                    "education": "",
+                    "skills": [],
+                    "about": "",
+                    "targetRole": "",
+                    "industry": user_data.get("job_domain", "")
+                }
+                
+                # Save this profile to profiles collection for future use
+                db["profiles"].insert_one(profile_from_signup.copy())
+                
+                return profile_from_signup
+            else:
+                # Return default profile if no user data found
+                return {
+                    "userId": user_id,
+                    "name": "",
+                    "email": "",
+                    "phone": "",
+                    "location": "",
+                    "jobTitle": "",
+                    "company": "",
+                    "experience": "",
+                    "education": "",
+                    "skills": [],
+                    "about": "",
+                    "targetRole": "",
+                    "industry": ""
+                }
     except Exception as e:
         logging.error(f"Error fetching profile: {e}")
         return JSONResponse(status_code=500, content={"error": "Failed to fetch profile"})
@@ -843,6 +996,152 @@ async def update_session_name(session_group_id: str, request: Request):
     except Exception as e:
         logger.error(f"Error updating session name: {e}")
         return JSONResponse(status_code=500, content={"error": "Failed to update session name"})
+
+@app.get("/settings/{user_id}")
+async def get_user_settings(user_id: str):
+    """Get user settings"""
+    try:
+        settings = db.user_settings.find_one({"userId": user_id})
+        if settings:
+            settings['_id'] = str(settings['_id'])  # Convert ObjectId to string
+            return JSONResponse(content=settings)
+        else:
+            # Return default settings
+            default_settings = {
+                "userId": user_id,
+                "language": "en",
+                "timezone": "Asia/Kolkata",
+                "theme": "light",
+                "fontSize": "medium",
+                "emailNotifications": True,
+                "pushNotifications": True,
+                "interviewReminders": True,
+                "progressUpdates": True,
+                "weeklyReports": False,
+                "microphoneEnabled": True,
+                "audioQuality": "high",
+                "noiseReduction": True,
+                "autoGainControl": True,
+                "dataCollection": True,
+                "analyticsTracking": False,
+                "shareUsageData": False,
+                "sessionDuration": 30,
+                "questionDifficulty": "Mixed",
+                "autoSave": True,
+                "recordingEnabled": True,
+                "createdAt": datetime.now(),
+                "updatedAt": datetime.now()
+            }
+            return JSONResponse(content=default_settings)
+    except Exception as e:
+        logging.error(f"Error fetching settings for user {user_id}: {e}")
+        return JSONResponse(status_code=500, content={"error": "Failed to fetch settings"})
+
+@app.post("/settings")
+async def save_user_settings(request: Request):
+    """Save user settings"""
+    try:
+        settings_data = await request.json()
+        user_id = settings_data.get("userId")
+        
+        if not user_id:
+            return JSONResponse(status_code=400, content={"error": "User ID is required"})
+        
+        # Add timestamps
+        settings_data["updatedAt"] = datetime.now()
+        
+        # Check if settings exist
+        existing_settings = db.user_settings.find_one({"userId": user_id})
+        
+        if existing_settings:
+            # Update existing settings
+            settings_data["createdAt"] = existing_settings.get("createdAt", datetime.now())
+            result = db.user_settings.update_one(
+                {"userId": user_id},
+                {"$set": settings_data}
+            )
+            if result.modified_count > 0:
+                return JSONResponse(content={
+                    "success": True, 
+                    "message": "Settings updated successfully",
+                    "userId": user_id
+                })
+            else:
+                return JSONResponse(status_code=400, content={"error": "No changes made"})
+        else:
+            # Create new settings
+            settings_data["createdAt"] = datetime.now()
+            result = db.user_settings.insert_one(settings_data)
+            if result.inserted_id:
+                return JSONResponse(content={
+                    "success": True,
+                    "message": "Settings created successfully", 
+                    "userId": user_id,
+                    "id": str(result.inserted_id)
+                })
+            else:
+                return JSONResponse(status_code=500, content={"error": "Failed to create settings"})
+                
+    except Exception as e:
+        logging.error(f"Error saving settings: {e}")
+        return JSONResponse(status_code=500, content={"error": "Failed to save settings"})
+
+@app.put("/settings/update")
+async def update_user_settings(request: Request):
+    """Update specific user settings"""
+    try:
+        update_data = await request.json()
+        user_id = update_data.get("userId")
+        
+        if not user_id:
+            return JSONResponse(status_code=400, content={"error": "User ID is required"})
+        
+        # Remove userId from update data
+        settings_updates = {k: v for k, v in update_data.items() if k != "userId"}
+        settings_updates["updatedAt"] = datetime.now()
+        
+        result = db.user_settings.update_one(
+            {"userId": user_id},
+            {"$set": settings_updates},
+            upsert=True  # Create if doesn't exist
+        )
+        
+        if result.modified_count > 0 or result.upserted_id:
+            return JSONResponse(content={
+                "success": True,
+                "message": "Settings updated successfully",
+                "userId": user_id
+            })
+        else:
+            return JSONResponse(status_code=400, content={"error": "No changes made"})
+            
+    except Exception as e:
+        logging.error(f"Error updating settings: {e}")
+        return JSONResponse(status_code=500, content={"error": "Failed to update settings"})
+
+@app.delete("/settings/{user_id}")
+async def reset_user_settings(user_id: str):
+    """Reset user settings to defaults"""
+    try:
+        # Delete existing settings
+        result = db.user_settings.delete_one({"userId": user_id})
+        
+        if result.deleted_count > 0:
+            return JSONResponse(content={
+                "success": True,
+                "message": "Settings reset to defaults",
+                "userId": user_id
+            })
+        else:
+            return JSONResponse(content={
+                "success": True,
+                "message": "No settings found to reset",
+                "userId": user_id
+            })
+            
+    except Exception as e:
+        logging.error(f"Error resetting settings for user {user_id}: {e}")
+        return JSONResponse(status_code=500, content={"error": "Failed to reset settings"})
 
 if __name__ == "__main__":
     import uvicorn

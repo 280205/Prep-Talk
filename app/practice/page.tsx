@@ -381,7 +381,14 @@ export default function PracticePage() {
             </Card>
 
             {/* Current Question */}
-            {currentQuestion && (
+            {sessionQuestions.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading questions...</p>
+                </CardContent>
+              </Card>
+            ) : currentQuestion ? (
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -424,6 +431,12 @@ export default function PracticePage() {
                       <AlertDescription>{error}</AlertDescription>
                     </Alert>
                   )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">No questions available. Please try starting a new session.</p>
                 </CardContent>
               </Card>
             )}

@@ -56,7 +56,8 @@ export default function AssistantPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
+      // Call backend directly instead of frontend API route
+      const response = await fetch('http://127.0.0.1:8000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,24 +107,24 @@ export default function AssistantPage() {
     <LayoutWithSidebar>
       <div className="h-[calc(100vh-8rem)] flex flex-col mt-16">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Interview Assistant</h1>
-          <p className="text-gray-600">Get personalized interview preparation advice and practice tips</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">AI Interview Assistant</h1>
+          <p className="text-gray-600 dark:text-gray-300">Get personalized interview preparation advice and practice tips</p>
         </div>
         
-        <Card className="flex-1 flex flex-col">
-          <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
-            <CardTitle className="flex items-center gap-2 text-blue-700">
+        <Card className="flex-1 flex flex-col bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+          <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+            <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
               <Bot className="h-6 w-6" />
               AI Assistant Chat
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-gray-600 dark:text-gray-400">
               Ask me anything about interview preparation, tips, or practice questions
             </CardDescription>
           </CardHeader>
             
           <CardContent className="flex-1 flex flex-col p-0">
             {/* Messages Container */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-gray-800">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -132,7 +133,7 @@ export default function AssistantPage() {
                   }`}
                 >
                   {message.role === 'assistant' && (
-                    <Avatar className="h-10 w-10 mt-1 ring-2 ring-blue-100">
+                    <Avatar className="h-10 w-10 mt-1 ring-2 ring-blue-100 dark:ring-blue-800">
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
                         <Bot className="h-5 w-5" />
                       </AvatarFallback>
@@ -143,14 +144,14 @@ export default function AssistantPage() {
                     className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
                       message.role === 'user'
                         ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white'
-                        : 'bg-white border border-gray-200 text-gray-900'
+                        : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100'
                     }`}
                   >
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">
                       {message.content}
                     </p>
                     <p className={`text-xs mt-2 ${
-                      message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                      message.role === 'user' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
                     }`}>
                       {message.timestamp.toLocaleTimeString()}
                     </p>
@@ -168,12 +169,12 @@ export default function AssistantPage() {
               
               {isLoading && (
                 <div className="flex items-start gap-3">
-                  <Avatar className="h-10 w-10 mt-1 ring-2 ring-blue-100">
+                  <Avatar className="h-10 w-10 mt-1 ring-2 ring-blue-100 dark:ring-blue-800">
                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
                       <Bot className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
-                  <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+                  <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl p-4 shadow-sm">
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -187,14 +188,14 @@ export default function AssistantPage() {
             </div>
             
             {/* Input Container */}
-            <div className="border-t bg-white p-6">
+            <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
               <div className="flex gap-3">
                 <Input
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask me about interview preparation, tips, or practice questions..."
-                  className="flex-1 h-12 px-4 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="flex-1 h-12 px-4 text-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500"
                   disabled={isLoading}
                 />
                 <Button 
@@ -206,10 +207,10 @@ export default function AssistantPage() {
                 </Button>
               </div>
               <div className="flex justify-between items-center mt-3">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Press Enter to send • Shift+Enter for new line
                 </p>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   AI Assistant Online
                 </div>
